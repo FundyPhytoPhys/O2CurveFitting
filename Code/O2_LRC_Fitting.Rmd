@@ -1,0 +1,110 @@
+---
+title: "O2 LRC Fitting"
+output: html_notebook
+author: Douglas A. Campbell
+---
+
+To Do:
+Check units for O2 evolution
+
+```{r libraries}
+library(tidyverse) #data wrangling & plotting
+library(minpack.lm) #non linear model fitting
+library(broom) #formatting model outputs
+```
+
+```{r paths and variables}
+DataInPath <- file.path("..", "Data", "RawData")
+O2FileName <- "2022.03.21.Sevcik.R.Test1.xlsx"
+```
+
+
+```{r file import}
+O2Data <- read_excel(file.path(DataInPath, O2FileName))
+
+O2Data
+```
+
+```{r variable rename}
+O2Data <- O2Data %>%
+  rename(umolphotons_m2_s1 = 1,
+         umolO2_mmolChl1_s1 = 2)
+```
+
+```{r test plot}
+O2Data %>%
+  ggplot() +
+  geom_point(aes(x = umolphotons_m2_s1, y = umolO2_mmolChl1_s1)) +
+  theme_bw()
+
+```
+Define model equations
+Citation: Ma X, Liu Q, Zhang Z, Zhang Z, Zhou Z, Jiang Y, et al. (2021) Effects of photosynthetic
+models on the calculation results of photosynthetic response parameters in young Larix principis-
+rupprechtii Mayr. plantation. PLoS ONE 16(12): e0261683. https://doi.org/10.1371/journal.pone.0261683
+
+I: incident light, umol photons m-2 s-1
+a: alpha, initial slope of light response curve under limiting light
+Pmax: maximum rate of photosynthesis; umol O2 chl-1 s-1
+R: dark respiration, umol O2 chl-1 s-1
+b: beta 'photoinhibition' term for decline in oxygen evolution under increasing incident light
+```{r define fit equations}
+#simple saturating function; rectangular hyperbola
+lrc <- function(I, a, Pmax, R){((a * I * Pmax)/((a*I) + Pmax)) - R
+}
+
+#
+lrc_beta <- function(I, a, b, Pmax, R){a * (((1 - b*I)/(1 - (a/Pmax)*I))*I) - R
+}
+
+```
+
+Fit model equations
+```{r fit models}
+O2Models <- O2Data %>%
+  nest(data = everything()) %>%
+  mutate(LRC_model = map(data, possibly(~nlsLM(umolO2_mmolChl1_s1 ~ lrc(I = umolphotons_m2_s1, a, Pmax, R),
+                              data = .x,
+                              start = list(a = 1,
+                                           Pmax = max(.$umolO2_mmolChl1_s1, na.rm = TRUE),
+                                           R = min(.$umolO2_mmolChl1_s1, na.rm = TRUE))
+                         ), NULL)
+                         )
+         ) %>%
+  mutate(LRC_Param = map(LRC_model, tidy),
+         LRC_Predict = map(LRC_model, augment)) %>%
+  mutate(LRCbeta_model = map(data, possibly(~nlsLM(umolO2_mmolChl1_s1 ~ lrc_beta(I = umolphotons_m2_s1, a, b, Pmax, R),
+                              data = .x,
+                              start = list(a = 1,
+                                           b = 0.1,
+                                           Pmax = max(.$umolO2_mmolChl1_s1, na.rm = TRUE),
+                                           R = min(.$umolO2_mmolChl1_s1, na.rm = TRUE))
+                         ), NULL)
+                         )
+         ) %>%
+  mutate(LRCbeta_Param = map(LRCbeta_model, tidy),
+         LRCbeta_Predict = map(LRCbeta_model, augment))
+
+```
+
+Plot models
+```{r plot models}
+O2Models %>%
+  unnest(LRC_Predict) %>%
+  ggplot() +
+  geom_point(aes(x = umolphotons_m2_s1, y = umolO2_mmolChl1_s1), colour = "green") +
+  geom_line(aes(x = umolphotons_m2_s1, y = `.fitted`), colour = "black") +
+  geom_point(aes(x = umolphotons_m2_s1, y = `.resid`), colour = "red", size = 0.5) +
+  geom_hline(yintercept = 0, linetype = "dashed") + 
+  theme_bw()
+
+O2Models %>%
+  unnest(LRCbeta_Predict) %>%
+  ggplot() +
+  geom_point(aes(x = umolphotons_m2_s1, y = umolO2_mmolChl1_s1), colour = "green") +
+  geom_line(aes(x = umolphotons_m2_s1, y = `.fitted`), colour = "black") +
+  geom_point(aes(x = umolphotons_m2_s1, y = `.resid`), colour = "red", size = 0.5) +
+  geom_hline(yintercept = 0, linetype = "dashed") + 
+  theme_bw()
+```
+
