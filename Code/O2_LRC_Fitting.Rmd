@@ -128,20 +128,25 @@ LRC_Param <- O2Models %>%
   unnest(LRC_Param) %>%
   select(c(term, estimate, std.error))
 
-LRC_Param
+LRC_Param2 <- tibble(Value = colnames(LRC_Param)[2:3],
+                     a = c(as.numeric(LRC_Param[1,2]), as.numeric(LRC_Param[1,3])),
+                     Pmax = c(as.numeric(LRC_Param[2,2]), as.numeric(LRC_Param[2,3])),
+                      R = c(as.numeric(LRC_Param[3,2]), as.numeric(LRC_Param[3,3])))
 
-
-# LRC_Param %>%
-#   pivot_longer()
-#   pivot_wider(names_from = term, values_from = c(estimate, std.error))
+LRC_Param2
 
 LRCbeta_Param <- O2Models %>%
   unnest(LRCbeta_Param) %>%
   select(c(term, estimate, std.error))
   
+LRCbeta_Param2 <- tibble(Value = colnames(LRCbeta_Param)[2:3],
+                     a = c(as.numeric(LRCbeta_Param[1,2]), as.numeric(LRCbeta_Param[1,3])),
+                     b = c(as.numeric(LRCbeta_Param[2,2]), as.numeric(LRCbeta_Param[2,3])),
+                      g = c(as.numeric(LRCbeta_Param[3,2]), as.numeric(LRCbeta_Param[3,3])),
+                     R = c(as.numeric(LRCbeta_Param[4,2]), as.numeric(LRCbeta_Param[4,3]))) %>%
+  mutate(Pmax = a/g)
 
-LRCbeta_Param %>%
-  pivot_wider(names_from = term, values_from = c(estimate))
+LRCbeta_Param2
 ```
 
 
