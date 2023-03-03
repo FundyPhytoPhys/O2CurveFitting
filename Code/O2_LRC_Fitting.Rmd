@@ -49,12 +49,12 @@ Pmax: maximum rate of photosynthesis; umol O2 chl-1 s-1
 R: dark respiration, umol O2 chl-1 s-1
 b: beta 'photoinhibition' term for decline in oxygen evolution under increasing incident light
 ```{r define fit equations}
-#simple saturating function; rectangular hyperbola
+# simple saturating function; rectangular hyperbola
 lrc <- function(I, a, Pmax, R){((a * I * Pmax)/((a*I) + Pmax)) - R
 }
 
-#
-lrc_beta <- function(I, a, b, Pmax, R){a * (((1 - b*I)/(1 - (a/Pmax)*I))*I) - R
+# function with beta photoinhibition
+lrc_beta <- function(I, a, b, g, R){(a * (((1 - (b*I))/(1 + (g*I)))*I)) - R
 }
 
 ```
@@ -73,11 +73,11 @@ O2Models <- O2Data %>%
          ) %>%
   mutate(LRC_Param = map(LRC_model, tidy),
          LRC_Predict = map(LRC_model, augment)) %>%
-  mutate(LRCbeta_model = map(data, possibly(~nlsLM(umolO2_mmolChl1_s1 ~ lrc_beta(I = umolphotons_m2_s1, a, b, Pmax, R),
+  mutate(LRCbeta_model = map(data, possibly(~nlsLM(umolO2_mmolChl1_s1 ~ lrc_beta(I = umolphotons_m2_s1, a, b, g, R),
                               data = .x,
                               start = list(a = 1,
-                                           b = 0.1,
-                                           Pmax = max(.$umolO2_mmolChl1_s1, na.rm = TRUE),
+                                           b = 1,
+                                           g = 1,
                                            R = min(.$umolO2_mmolChl1_s1, na.rm = TRUE))
                          ), NULL)
                          )
