@@ -132,7 +132,8 @@ LRC_Param <- O2Models %>%
 LRC_Param2 <- tibble(Value = colnames(LRC_Param)[2:3],
                      a = c(as.numeric(LRC_Param[1,2]), as.numeric(LRC_Param[1,3])),
                      Pmax = c(as.numeric(LRC_Param[2,2]), as.numeric(LRC_Param[2,3])),
-                      R = c(as.numeric(LRC_Param[3,2]), as.numeric(LRC_Param[3,3])))
+                      R = c(as.numeric(LRC_Param[3,2]), as.numeric(LRC_Param[3,3]))) %>%
+  mutate(Pmax_R = Pmax - R)
 
 LRC_Param2
 
@@ -145,7 +146,8 @@ LRCbeta_Param2 <- tibble(Value = colnames(LRCbeta_Param)[2:3],
                      b = c(as.numeric(LRCbeta_Param[2,2]), as.numeric(LRCbeta_Param[2,3])),
                       g = c(as.numeric(LRCbeta_Param[3,2]), as.numeric(LRCbeta_Param[3,3])),
                      R = c(as.numeric(LRCbeta_Param[4,2]), as.numeric(LRCbeta_Param[4,3]))) %>%
-  mutate(Pmax = a*((sqrt(b + g) - sqrt(b))/g)^2)
+  mutate(Pmax = a*((sqrt(b + g) - sqrt(b))/g)^2,
+         Pmax_R = Pmax - R)
 
 LRCbeta_Param2
 ```
