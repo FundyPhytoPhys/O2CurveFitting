@@ -66,10 +66,21 @@ lrc <- function(I, a, Pmax, R){((a * I * Pmax)/((a*I) + Pmax)) - R
 lrc_beta <- function(I, a, b, g, R){(a * (((1 - (b*I))/(1 + (g*I)))*I)) - R
 }
 
-# function with beta photoinhibition
-lrc_beta_alt <- function(I, a, b, Pmax, R){(a * (((1 - (b*I))/(1 + ((a/Pmax)*I)))*I)) - R
-}
+# Solve model for light compensation point; light level when O2 from photosynthesis = O2 taken up by respiration; this is a 'breakeven point' for photosynthesis.
 
+# 0 = (a * (((1 - (b*I))/(1 + (g*I)))*I)) - R
+
+# R = (a * (((1 - (b*I))/(1 + (g*I)))*I))
+# R/a = (((1 - (b*I))/(1 + (g*I))) * I)
+# R/(a * I) = (1 - (b*I))/(1 + (g*I))
+
+# R/a = (I - (b*I^2))/(1 + (g*I))
+
+# R/a = (I - (b*I^2))/(1 + (g*I))
+
+# R/a = ((I/(1 + (g*I))) - ((b*I^2)/(1 + (g*I)))
+
+# R/a = ((I/(1 + (g*I))) - ((b*I^2)/(1 + (g*I)))
 
 ```
 
@@ -124,7 +135,8 @@ O2Models %>%
 ```
 
 # Report model parameters
-```{r model parameters}
+## LRC model parameters
+```{r LRC model parameters}
 LRC_Param <- O2Models %>%
   unnest(LRC_Param) %>%
   select(c(term, estimate, std.error))
@@ -137,6 +149,11 @@ LRC_Param2 <- tibble(Value = colnames(LRC_Param)[2:3],
 
 LRC_Param2
 
+```
+
+
+## LRCbeta_model_parameters
+```{r LRCbeta model parameters}
 LRCbeta_Param <- O2Models %>%
   unnest(LRCbeta_Param) %>%
   select(c(term, estimate, std.error))
@@ -147,9 +164,37 @@ LRCbeta_Param2 <- tibble(Value = colnames(LRCbeta_Param)[2:3],
                       g = c(as.numeric(LRCbeta_Param[3,2]), as.numeric(LRCbeta_Param[3,3])),
                      R = c(as.numeric(LRCbeta_Param[4,2]), as.numeric(LRCbeta_Param[4,3]))) %>%
   mutate(Pmax = a*((sqrt(b + g) - sqrt(b))/g)^2,
-         Pmax_R = Pmax - R)
+         Pmax_R = Pmax - R,
+         EK = Pmax/a,
+         O2_comp = R/(a * (((1 - (b*I))/(1 + (g*I)))*I)))
 
 LRCbeta_Param2
 ```
 
+# Plot including fit parameters
+```{r plot parameters}
+a_fun <- function(x, a = as.numeric(LRCbeta_Param2$a[1]), R = as.numeric(LRCbeta_Param2$R[1])){(x * a) - R
+}
+
+b_fun <- function(x, b = as.numeric(LRCbeta_Param2$b[1]), g = as.numeric(LRCbeta_Param2$g[1]), R = as.numeric(LRCbeta_Param2$R[1])){(x * (1-(b*x))/(1 + (g*x))) - R
+}
+
+
+
+O2Models %>%
+  unnest(LRCbeta_Predict) %>%
+  ggplot() +
+  xlim(0, max(as.numeric(O2Data$umolphotons_m2_s1), na.rm = TRUE)) +
+  ylim(min(as.numeric(O2Data$umolO2_mmolChl1_s1), na.rm = TRUE) - 20, max(as.numeric(O2Data$umolO2_mmolChl1_s1), na.rm = TRUE)) +
+  geom_point(aes(x = umolphotons_m2_s1, y = umolO2_mmolChl1_s1), colour = "green") +
+  geom_line(aes(x = umolphotons_m2_s1, y = `.fitted`), colour = "black") +
+  geom_hline(yintercept = 0, size = 2) + 
+  geom_hline(yintercept = as.numeric(LRCbeta_Param2$Pmax_R[1]), linetype = "dashed", colour = "darkgreen") + 
+  geom_hline(yintercept = -as.numeric(LRCbeta_Param2$R[1]), linetype = "dashed", colour = "darkred") + 
+  geom_function(fun = a_fun, linetype = "dashed", colour = "green") +
+  geom_function(fun = b_fun, linetype = "dashed", colour = "orange") +
+  geom_vline(xintercept = LRCbeta_Param2$EK[1], linetype = "dashed", colour = "blue") +
+  theme_bw()
+
+```
 
