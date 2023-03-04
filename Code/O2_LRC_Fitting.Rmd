@@ -19,6 +19,7 @@ DataInPath <- file.path("..", "Data", "RawData")
 
 # Call libraries to access functions
 ```{r libraries}
+library(readxl) #importing files from Excel
 library(tidyverse) #data wrangling & plotting
 library(minpack.lm) #non linear model fitting
 library(broom) #formatting model outputs
@@ -47,9 +48,9 @@ O2Data %>%
 ```
 
 # Define model equations
-Citation: Ma X, Liu Q, Zhang Z, Zhang Z, Zhou Z, Jiang Y, et al. (2021) Effects of photosynthetic
-models on the calculation results of photosynthetic response parameters in young Larix principis-
-rupprechtii Mayr. plantation. PLoS ONE 16(12): e0261683. https://doi.org/10.1371/journal.pone.0261683
+Citations: Ma X, Liu Q, Zhang Z, Zhang Z, Zhou Z, Jiang Y, et al. (2021) Effects of photosynthetic models on the calculation results of photosynthetic response parameters in young Larix principis- rupprechtii Mayr. plantation. PLoS ONE 16(12): e0261683. https://doi.org/10.1371/journal.pone.0261683
+
+https://www.frontiersin.org/articles/10.3389/fpls.2020.581851/full
 
 I: incident light, umol photons m-2 s-1
 a: alpha, initial slope of light response curve under limiting light
@@ -144,7 +145,7 @@ LRCbeta_Param2 <- tibble(Value = colnames(LRCbeta_Param)[2:3],
                      b = c(as.numeric(LRCbeta_Param[2,2]), as.numeric(LRCbeta_Param[2,3])),
                       g = c(as.numeric(LRCbeta_Param[3,2]), as.numeric(LRCbeta_Param[3,3])),
                      R = c(as.numeric(LRCbeta_Param[4,2]), as.numeric(LRCbeta_Param[4,3]))) %>%
-  mutate(Pmax = a/g)
+  mutate(Pmax = a*((sqrt(b + g) - sqrt(b))/g)^2)
 
 LRCbeta_Param2
 ```
