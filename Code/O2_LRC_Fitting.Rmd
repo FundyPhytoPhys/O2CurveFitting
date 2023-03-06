@@ -7,6 +7,10 @@ author: Douglas A. Campbell
 This R Notebook imports oxygen evolution vs. PAR data.
 It fits and plots two models for light response curves, and reports the parameters of the fits.
 
+To Do
+-estimate Light compensation point for O2
+-implement model that accounts for 'photoinhibition' by acceleration of respiration with increasing light
+
 # Define data file name, in .xlsx format
 ```{r paths and variables}
 O2FileName <- "2022.03.21.Sevcik.R.Test1.xlsx"
@@ -66,6 +70,10 @@ lrc <- function(I, a, Pmax, R){((a * I * Pmax)/((a*I) + Pmax)) - R
 lrc_beta <- function(I, a, b, g, R){(a * (((1 - (b*I))/(1 + (g*I)))*I)) - R
 }
 
+# function with light-dependent Respiration
+lrc_dr <- function(I, a, Pmax, R, d){((a * I * Pmax)/((a*I) + Pmax)) - (R * I * d)
+}
+
 # Solve model for light compensation point; light level when O2 from photosynthesis = O2 taken up by respiration; this is a 'breakeven point' for photosynthesis.
 
 # 0 = (a * (((1 - (b*I))/(1 + (g*I)))*I)) - R
@@ -108,29 +116,60 @@ O2Models <- O2Data %>%
                          )
          ) %>%
   mutate(LRCbeta_Param = map(LRCbeta_model, tidy),
-         LRCbeta_Predict = map(LRCbeta_model, augment))
+         LRCbeta_Predict = map(LRCbeta_model, augment)) %>%
+   mutate(LRCdR_model = map(data, possibly(~nlsLM(umolO2_mmolChl1_s1 ~ lrc_dr(I = umolphotons_m2_s1, a, Pmax, R, d),
+                              data = .x,
+                              start = list(a = 5,
+                                           Pmax = 200,
+                                           R = 100,
+                                           d = 0.01)
+                         ), NULL)
+                         )
+         ) %>%
+  mutate(LRCdR_Param = map(LRCdR_model, tidy),
+         LRCdR_Predict = map(LRCdR_model, augment))
 
 ```
 
 # Plot models
 ```{r plot models}
+# Adding legend for lines
+#https://community.rstudio.com/t/adding-manual-legend-to-ggplot2/41651/2
+
+line_colours = c("umolO2_mmolChl1_s1" = "green",
+            "`.fitted`" = "black",
+            "`.resid`" = "red")
+
 O2Models %>%
   unnest(LRC_Predict) %>%
-  ggplot() +
-  geom_point(aes(x = umolphotons_m2_s1, y = umolO2_mmolChl1_s1), colour = "green") +
-  geom_line(aes(x = umolphotons_m2_s1, y = `.fitted`), colour = "black") +
-  geom_point(aes(x = umolphotons_m2_s1, y = `.resid`), colour = "red", size = 0.5) +
+  ggplot(aes(x = umolphotons_m2_s1)) +
+  geom_point(aes(y = umolO2_mmolChl1_s1, colour =  "umolO2_mmolChl1_s1")) +
+  geom_line(aes(y = `.fitted`, colour = "`.fitted`")) +
+  geom_point(aes(y = `.resid`, colour = "`.resid`"), size = 0.5) +
   geom_hline(yintercept = 0, linetype = "dashed") + 
+  labs(colour = "Legend") + 
+  scale_colour_manual(values = line_colours) +
   theme_bw()
 
 O2Models %>%
   unnest(LRCbeta_Predict) %>%
-  ggplot() +
-  geom_point(aes(x = umolphotons_m2_s1, y = umolO2_mmolChl1_s1), colour = "green") +
-  geom_line(aes(x = umolphotons_m2_s1, y = `.fitted`), colour = "black") +
-  geom_point(aes(x = umolphotons_m2_s1, y = `.resid`), colour = "red", size = 0.5) +
+  ggplot(aes(x = umolphotons_m2_s1)) +
+  geom_point(aes(y = umolO2_mmolChl1_s1, colour =  "umolO2_mmolChl1_s1")) +
+  geom_line(aes(y = `.fitted`, colour = "`.fitted`")) +
+  geom_point(aes(y = `.resid`, colour = "`.resid`"), size = 0.5) +
   geom_hline(yintercept = 0, linetype = "dashed") + 
+  labs(colour = "Legend") + 
+  scale_colour_manual(values = line_colours) +
   theme_bw()
+
+# O2Models %>%
+#   unnest(LRCrD_Predict) %>%
+#   ggplot() +
+#   geom_point(aes(x = umolphotons_m2_s1, y = umolO2_mmolChl1_s1), colour = "green") +
+#   geom_line(aes(x = umolphotons_m2_s1, y = `.fitted`), colour = "black") +
+#   geom_point(aes(x = umolphotons_m2_s1, y = `.resid`), colour = "red", size = 0.5) +
+#   geom_hline(yintercept = 0, linetype = "dashed") + 
+#   theme_bw()
 
 ```
 
@@ -139,9 +178,11 @@ O2Models %>%
 ```{r LRC model parameters}
 LRC_Param <- O2Models %>%
   unnest(LRC_Param) %>%
-  select(c(term, estimate, std.error))
+  select(c(term, estimate, std.error)) %>%
+  mutate(Model = "lrc", before = "Value")
 
-LRC_Param2 <- tibble(Value = colnames(LRC_Param)[2:3],
+LRC_Param2 <- tibble(Model = "lrc",
+                     Value = colnames(LRC_Param)[2:3],
                      a = c(as.numeric(LRC_Param[1,2]), as.numeric(LRC_Param[1,3])),
                      Pmax = c(as.numeric(LRC_Param[2,2]), as.numeric(LRC_Param[2,3])),
                       R = c(as.numeric(LRC_Param[3,2]), as.numeric(LRC_Param[3,3]))) %>%
@@ -156,17 +197,18 @@ LRC_Param2
 ```{r LRCbeta model parameters}
 LRCbeta_Param <- O2Models %>%
   unnest(LRCbeta_Param) %>%
-  select(c(term, estimate, std.error))
+  select(c(term, estimate, std.error)) %>%
+  mutate(Model = "lrc", before = "Value")
   
-LRCbeta_Param2 <- tibble(Value = colnames(LRCbeta_Param)[2:3],
+LRCbeta_Param2 <- tibble(Model = "lrc_beta",
+                         Value = colnames(LRCbeta_Param)[2:3],
                      a = c(as.numeric(LRCbeta_Param[1,2]), as.numeric(LRCbeta_Param[1,3])),
                      b = c(as.numeric(LRCbeta_Param[2,2]), as.numeric(LRCbeta_Param[2,3])),
                       g = c(as.numeric(LRCbeta_Param[3,2]), as.numeric(LRCbeta_Param[3,3])),
                      R = c(as.numeric(LRCbeta_Param[4,2]), as.numeric(LRCbeta_Param[4,3]))) %>%
   mutate(Pmax = a*((sqrt(b + g) - sqrt(b))/g)^2,
          Pmax_R = Pmax - R,
-         EK = Pmax/a,
-         O2_comp = R/(a * (((1 - (b*I))/(1 + (g*I)))*I)))
+         EK = Pmax/a)
 
 LRCbeta_Param2
 ```
@@ -179,13 +221,13 @@ a_fun <- function(x, a = as.numeric(LRCbeta_Param2$a[1]), R = as.numeric(LRCbeta
 b_fun <- function(x, b = as.numeric(LRCbeta_Param2$b[1]), g = as.numeric(LRCbeta_Param2$g[1]), R = as.numeric(LRCbeta_Param2$R[1])){(x * (1-(b*x))/(1 + (g*x))) - R
 }
 
-
+r_fun <- function()
 
 O2Models %>%
   unnest(LRCbeta_Predict) %>%
   ggplot() +
-  xlim(0, max(as.numeric(O2Data$umolphotons_m2_s1), na.rm = TRUE)) +
-  ylim(min(as.numeric(O2Data$umolO2_mmolChl1_s1), na.rm = TRUE) - 20, max(as.numeric(O2Data$umolO2_mmolChl1_s1), na.rm = TRUE)) +
+  xlim(0, max(as.numeric(O2Data$umolphotons_m2_s1) + 20, na.rm = TRUE)) +
+  ylim(min(as.numeric(O2Data$umolO2_mmolChl1_s1), na.rm = TRUE) - 20, max(as.numeric(O2Data$umolO2_mmolChl1_s1) + 20, na.rm = TRUE)) +
   geom_point(aes(x = umolphotons_m2_s1, y = umolO2_mmolChl1_s1), colour = "green") +
   geom_line(aes(x = umolphotons_m2_s1, y = `.fitted`), colour = "black") +
   geom_hline(yintercept = 0, linewidth = 2) + 
