@@ -188,7 +188,7 @@ O2Models %>%
   ylim(min(as.numeric(O2Data$umolO2_mmolChl1_s1), na.rm = TRUE) - 20, max(as.numeric(O2Data$umolO2_mmolChl1_s1), na.rm = TRUE)) +
   geom_point(aes(x = umolphotons_m2_s1, y = umolO2_mmolChl1_s1), colour = "green") +
   geom_line(aes(x = umolphotons_m2_s1, y = `.fitted`), colour = "black") +
-  geom_hline(yintercept = 0, size = 2) + 
+  geom_hline(yintercept = 0, linewidth = 2) + 
   geom_hline(yintercept = as.numeric(LRCbeta_Param2$Pmax_R[1]), linetype = "dashed", colour = "darkgreen") + 
   geom_hline(yintercept = -as.numeric(LRCbeta_Param2$R[1]), linetype = "dashed", colour = "darkred") + 
   geom_function(fun = a_fun, linetype = "dashed", colour = "green") +
