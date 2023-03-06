@@ -69,25 +69,9 @@ lrc <- function(I, a, Pmax, R){((a * I * Pmax)/((a*I) + Pmax)) - R
 lrc_beta <- function(I, a, b, g, R){(a * (((1 - (b*I))/(1 + (g*I)))*I)) - R
 }
 
-# function with light-dependent Respiration
-lrc_dr <- function(I, a, Pmax, R, d){((a * I * Pmax)/((a*I) + Pmax)) - (R * I * d)
+# function with light-dependent acceleration of Respiration
+lrc_dr <- function(I, a, Pmax, R, d){((a * I * Pmax)/((a*I) + Pmax)) - (R * I^d)
 }
-
-# Solve model for light compensation point; light level when O2 from photosynthesis = O2 taken up by respiration; this is a 'breakeven point' for photosynthesis.
-
-# 0 = (a * (((1 - (b*I))/(1 + (g*I)))*I)) - R
-
-# R = (a * (((1 - (b*I))/(1 + (g*I)))*I))
-# R/a = (((1 - (b*I))/(1 + (g*I))) * I)
-# R/(a * I) = (1 - (b*I))/(1 + (g*I))
-
-# R/a = (I - (b*I^2))/(1 + (g*I))
-
-# R/a = (I - (b*I^2))/(1 + (g*I))
-
-# R/a = ((I/(1 + (g*I))) - ((b*I^2)/(1 + (g*I)))
-
-# R/a = ((I/(1 + (g*I))) - ((b*I^2)/(1 + (g*I)))
 
 ```
 
@@ -116,12 +100,12 @@ O2Models <- O2Data %>%
          ) %>%
   mutate(LRCbeta_Param = map(LRCbeta_model, tidy),
          LRCbeta_Predict = map(LRCbeta_model, augment)) %>%
-   mutate(LRCdR_model = map(data, possibly(~nlsLM(umolO2_mmolChl1_s1 ~ lrc_dr(I = umolphotons_m2_s1, a, Pmax, R, d),
+   mutate(LRCdR_model = map(data,possibly(~nlsLM(umolO2_mmolChl1_s1 ~ lrc_dr(I = umolphotons_m2_s1, a, Pmax, R, d),
                               data = .x,
                               start = list(a = 5,
                                            Pmax = 200,
                                            R = 100,
-                                           d = 0.01)
+                                           d = 0.000001)
                          ), NULL)
                          )
          ) %>%
@@ -164,13 +148,17 @@ O2Models %>%
   theme_bw()
 
 # O2Models %>%
-#   unnest(LRCrD_Predict) %>%
-#   ggplot() +
-#   geom_point(aes(x = umolphotons_m2_s1, y = umolO2_mmolChl1_s1), colour = "green") +
-#   geom_line(aes(x = umolphotons_m2_s1, y = `.fitted`), colour = "black") +
-#   geom_point(aes(x = umolphotons_m2_s1, y = `.resid`), colour = "red", size = 0.5) +
+#   unnest(LRCdR_Predict) %>%
+#   ggplot(aes(x = umolphotons_m2_s1)) +
+#   geom_point(aes(y = umolO2_mmolChl1_s1, colour =  "umolO2_mmolChl1_s1")) +
+#   geom_line(aes(y = `.fitted`, colour = "fitted")) +
+#   geom_point(aes(y = `.resid`, colour = "residual"), size = 0.5) +
 #   geom_hline(yintercept = 0, linetype = "dashed") + 
+#   labs(colour = "Legend") + 
+#   scale_colour_manual(values = line_colours) +
+#   scale_x_continuous(expand = c(0,0)) +
 #   theme_bw()
+
 
 ```
 
@@ -264,7 +252,7 @@ O2Models %>%
   ylim(min(as.numeric(O2Data$umolO2_mmolChl1_s1), na.rm = TRUE) - 20, max(as.numeric(O2Data$umolO2_mmolChl1_s1) + 20, na.rm = TRUE)) +
   geom_point(aes(y = umolO2_mmolChl1_s1, colour =  "umolO2_mmolChl1_s1")) +
   geom_line(aes(y = `.fitted`, colour = "fitted")) +
-  geom_hline(yintercept = 0, linewidth = 2) + 
+  geom_hline(yintercept = 0, linetype = "dashed") + 
   geom_line(aes(y = -R, colour = "Respiration")) +
   geom_line(aes(y = PMax_R, colour = "Pmax")) +
   geom_line(aes(x = Ek, y = umolO2_mmolChl1_s1, colour = "Ek")) +
@@ -276,13 +264,6 @@ O2Models %>%
   scale_x_continuous(expand = c(0,0)) +
   theme_bw()
 
-
-# 
-# 
-#   geom_function(fun = a_fun, linetype = "dashed", colour = "alpha") +
-
-
- 
 
 ```
 
