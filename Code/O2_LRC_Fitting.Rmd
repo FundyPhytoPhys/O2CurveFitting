@@ -5,10 +5,12 @@ author: Douglas A. Campbell
 ---
 
 This R Notebook imports oxygen evolution vs. PAR data.
-It fits and plots two models for light response curves, and reports the parameters of the fits.
+It fits and plots three models for O2 light response curves, and reports the parameters of the fits.
 
-To Do
--implement model that accounts for 'photoinhibition' by acceleration of respiration with increasing light
+# Set Student Operator Name
+```{r operator name}
+Operator <- "Sevcik"
+```
 
 # Define data file name, in .xlsx format
 ```{r paths and variables}
@@ -41,7 +43,7 @@ O2Data <- O2Data %>%
          umolO2_mmolChl1_s1 = 2)
 ```
 
-# Plot Data
+# Data Test Plot
 ```{r test plot}
 O2Data %>%
   ggplot() +
@@ -56,10 +58,16 @@ Citations: Ma X, Liu Q, Zhang Z, Zhang Z, Zhou Z, Jiang Y, et al. (2021) Effects
 https://www.frontiersin.org/articles/10.3389/fpls.2020.581851/full
 
 I: incident light, umol photons m-2 s-1
-a: alpha, initial slope of light response curve under limiting light
-Pmax: maximum rate of photosynthesis; umol O2 chl-1 s-1
+a: alpha, initial slope of light response curve under limiting light; the 'affinity' of the culture for light.
+Pmax: maximum rate of photosynthesis; umol O2 chl-1 s-1; the 'capacity' of the culture for photosynthesis.
+
 R: dark respiration, umol O2 chl-1 s-1
-b: beta 'photoinhibition' term for decline in oxygen evolution under increasing incident light
+
+b: beta 'photoinhibition' term for decline in oxygen evolution under increasing incident light.  This decrease can result from multiple mechanisms.
+
+g: gamma fitting term related to curvature of response.
+
+d: change in respiration under illumination.
 ```{r define fit equations}
 # simple saturating function; rectangular hyperbola
 lrc <- function(I, a, Pmax, R){((a * I * Pmax)/((a*I) + Pmax)) - R
@@ -130,7 +138,7 @@ O2Models %>%
   geom_line(aes(y = `.fitted`, colour = "fitted")) +
   geom_point(aes(y = `.resid`, colour = "residual"), size = 0.5) +
   geom_hline(yintercept = 0, linetype = "dashed") + 
-  labs(colour = "Legend") + 
+  labs(colour = "Legend", title = "LRC", subtitle = Operator) + 
   scale_colour_manual(values = line_colours) +
   scale_x_continuous(expand = c(0,0)) +
   theme_bw()
@@ -142,7 +150,7 @@ O2Models %>%
   geom_line(aes(y = `.fitted`, colour = "fitted")) +
   geom_point(aes(y = `.resid`, colour = "residual"), size = 0.5) +
   geom_hline(yintercept = 0, linetype = "dashed") + 
-  labs(colour = "Legend") + 
+  labs(colour = "Legend", title = "LRCbeta", subtitle = Operator) + 
   scale_colour_manual(values = line_colours) +
   scale_x_continuous(expand = c(0,0)) +
   theme_bw()
@@ -154,7 +162,7 @@ O2Models %>%
   geom_line(aes(y = `.fitted`, colour = "fitted")) +
   geom_point(aes(y = `.resid`, colour = "residual"), size = 0.5) +
   geom_hline(yintercept = 0, linetype = "dashed") +
-  labs(colour = "Legend") +
+  labs(colour = "Legend", title = "LRCdR", subtitle = Operator) +
   scale_colour_manual(values = line_colours) +
   scale_x_continuous(expand = c(0,0)) +
   theme_bw()
@@ -259,6 +267,7 @@ LRCdR_Param2
 
 
 # Plots showing fit parameters
+## LRCbeta model with 'photoinhibition' of O2 evolution under increasing light.
 ```{r plot LRCbeta parameters}
 LRCbeta_param_colours = line_colours = c("umolO2_mmolChl1_s1" = "green",
                                  "alpha" = "green",
@@ -302,14 +311,14 @@ O2Models %>%
   geom_line(aes(y = beta, colour = "beta"), linetype = "dotted") +
   geom_line(aes(x = Ek, y = umolO2_mmolChl1_s1, colour = "Ek")) +
   geom_line(aes(x = O2Comp, y = umolO2_mmolChl1_s1, colour = "O2Comp")) +
-  labs(title = "LRCbeta", colour = "Legend") + 
+  labs(title = "LRCbeta", subtitle = Operator, colour = "Legend") + 
   scale_colour_manual(values = LRCbeta_param_colours) +
   scale_x_continuous(expand = c(0,0)) +
   theme_bw()
 
 ```
-  geom_line(aes(y = -dR, colour = "darkred"), linetype = "dotted") +
 
+## LRCdR model with acceleration of respiration under increasing light.
 ```{r plot LRCdR parameters}
 
 # function with light-dependent acceleration of Respiration
@@ -350,11 +359,11 @@ O2Models %>%
   geom_line(aes(y = -dR, colour = "dR"), linetype = "dashed") +
   geom_line(aes(x = Ek, y = umolO2_mmolChl1_s1, colour = "Ek")) +
   geom_line(aes(x = O2Comp, y = umolO2_mmolChl1_s1, colour = "O2Comp")) +
-  labs(title = "LRCdR", colour = "Legend") + 
+  labs(title = "LRCdR", subtitle = Operator, colour = "Legend") + 
   scale_colour_manual(values = LRCdR_param_colours) +
   scale_x_continuous(expand = c(0,0)) +
   theme_bw()
 
 ```
-```
+
 
