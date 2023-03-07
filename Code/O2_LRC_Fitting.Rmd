@@ -3,16 +3,20 @@ title: "O2 LRC Fitting"
 output: html_notebook
 author: Douglas A. Campbell
 ---
+This is an R Notebook.
+Run code chunks, in order, by clicking the green arrows.
 
 This R Notebook imports oxygen evolution vs. PAR data.
 It fits and plots three models for O2 light response curves, and reports the parameters of the fits.
 
 # Set Student Operator Name
+Enter operatore name between the ""
 ```{r operator name}
 Operator <- "Sevcik"
 ```
 
 # Define data file name, in .xlsx format
+Enter data file name between ""
 ```{r paths and variables}
 O2FileName <- "2022.03.21.Sevcik.R.Test1.xlsx"
 ```
