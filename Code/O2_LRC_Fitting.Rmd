@@ -70,7 +70,7 @@ lrc_beta <- function(I, a, b, g, R){(a * (((1 - (b*I))/(1 + (g*I)))*I)) - R
 }
 
 # function with light-dependent acceleration of Respiration
-lrc_dr <- function(I, a, Pmax, R, d){((a * I * Pmax)/((a*I) + Pmax)) - (R + (R * I * d))
+lrc_dr <- function(I, a, Pmax, R, d){((a * I * Pmax)/((a*I) + Pmax)) - (R + (R * I^2 * d))
 }
 
 ```
@@ -226,7 +226,7 @@ LRCbeta_Param2 <- tibble(Model = "lrc_beta",
 
 LRCbeta_Param2
 ```
-## LRCbeta_model_parameters
+## LRCdR_model_parameters
 ```{r LRCdR model parameters}
 # function with light-dependent acceleration of Respiration
 #lrc_dr <- function(I, a, Pmax, R, d){((a * I * Pmax)/((a*I) + Pmax)) - (R + (R * I * d))
@@ -329,7 +329,7 @@ LRCdR_param_colours = line_colours = c("umolO2_mmolChl1_s1" = "green",
 a_fun <- function(I, a = as.numeric(LRCbeta_Param2$a[1]), R = as.numeric(LRCbeta_Param2$R[1])){(I * a) - R
 }
 
-r_fun <- function(R = as.numeric(LRCdR_Param2$R[1]), I, d){R + (R * I * d)
+r_fun <- function(R = as.numeric(LRCdR_Param2$R[1]), I, d){R + (R * I^2 * d)
   }
 
 O2Models %>%
@@ -351,7 +351,7 @@ O2Models %>%
   geom_line(aes(y = -dR, colour = "dR"), linetype = "dashed") +
   geom_line(aes(x = Ek, y = umolO2_mmolChl1_s1, colour = "Ek")) +
   geom_line(aes(x = O2Comp, y = umolO2_mmolChl1_s1, colour = "O2Comp")) +
-  labs(title = "LRCbeta", colour = "Legend") + 
+  labs(title = "LRCdR", colour = "Legend") + 
   scale_colour_manual(values = LRCdR_param_colours) +
   scale_x_continuous(expand = c(0,0)) +
   theme_bw()
