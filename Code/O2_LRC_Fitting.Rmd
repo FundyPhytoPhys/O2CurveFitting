@@ -313,15 +313,13 @@ O2Models %>%
 ```{r plot LRCdR parameters}
 
 # function with light-dependent acceleration of Respiration
-#lrc_dr <- function(I, a, Pmax, R, d){((a * I * Pmax)/((a*I) + Pmax)) - (R + (R * I * d))
-#}
+# lrc_dr <- function(I, a, Pmax, R, d){((a * I * Pmax)/((a*I) + Pmax)) - (R + (R * I^2 * d))
+# }
 
 LRCdR_param_colours = line_colours = c("umolO2_mmolChl1_s1" = "green",
                                  "alpha" = "green",
                                  "fitted" = "black",
-                                 "resid" = "red",
                                  "Ek" = "blue",
-                                 "Respiration" = "darkred",
                                  "Pmax" = "darkgreen",
                                  "O2Comp" = "red",
                                  "dR" = "darkred")
@@ -330,7 +328,8 @@ a_fun <- function(I, a = as.numeric(LRCbeta_Param2$a[1]), R = as.numeric(LRCbeta
 }
 
 r_fun <- function(R = as.numeric(LRCdR_Param2$R[1]), I, d){R + (R * I^2 * d)
-  }
+}
+
 
 O2Models %>%
   unnest(LRCdR_Predict) %>%
@@ -339,10 +338,10 @@ O2Models %>%
          Ek = LRCdR_Param2$EK[1],
          O2Comp = LRCdR_Param2$O2Comp[1],
          alpha = a_fun(I = umolphotons_m2_s1, a = as.numeric(LRCdR_Param2$a[1])),
-         dR = r_fun(I = umolphotons_m2_s1, d = 0.001)) %>%
+         dR = r_fun(I = umolphotons_m2_s1, d = as.numeric(LRCdR_Param2$d[1]))) %>%
   ggplot(aes(x = umolphotons_m2_s1)) +
-  #xlim(0, max(as.numeric(O2Data$umolphotons_m2_s1) + 20, na.rm = TRUE)) +
-  #ylim(min(as.numeric(O2Data$umolO2_mmolChl1_s1), na.rm = TRUE) - 20, max(as.numeric(O2Data$umolO2_mmolChl1_s1) + 20, na.rm = TRUE)) +
+  # xlim(0, max(as.numeric(O2Data$umolphotons_m2_s1), na.rm = TRUE)) +
+  # ylim(min(as.numeric(O2Data$umolO2_mmolChl1_s1) * 2, na.rm = TRUE) - 20, max(as.numeric(O2Data$umolO2_mmolChl1_s1) *2, na.rm = TRUE)) +
   geom_point(aes(y = umolO2_mmolChl1_s1, colour =  "umolO2_mmolChl1_s1")) +
   geom_line(aes(y = `.fitted`, colour = "fitted")) +
   geom_hline(yintercept = 0, linetype = "dashed") + 
