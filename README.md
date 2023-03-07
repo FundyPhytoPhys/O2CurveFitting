@@ -1,8 +1,8 @@
-# Project Title
+# O2 Light Response Curve Fitting
 
 ## Summary
 
-Provide a brief description of the project - 150 words.
+Importing and fitting oxygen light response curves.
 
 ## Highly Qualified Personnel
 
@@ -26,7 +26,7 @@ Provide a brief description of the project - 150 words.
 
 ## Keywords
 
-List keywords separated by commas
+oxygen evolution, phytoplankton, light response
 
 ## Additional information and support
 
