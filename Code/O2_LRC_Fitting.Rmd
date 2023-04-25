@@ -21,9 +21,11 @@ Enter data file name between ""
 O2FileName <- "2022.03.21.Sevcik.R.Test1.xlsx"
 ```
 
-# Define location of data file
+# Define location of data file and plot outputs
 ```{r file path}
 DataInPath <- file.path("..", "Data", "RawData")
+
+Plots <- file.path("..", "Plots")
 ```
 
 # Call libraries to access functions
@@ -315,7 +317,7 @@ O2Models %>%
   geom_line(aes(y = beta, colour = "beta"), linetype = "dotted") +
   geom_line(aes(x = Ek, y = umolO2_mmolChl1_s1, colour = "Ek")) +
   geom_line(aes(x = O2Comp, y = umolO2_mmolChl1_s1, colour = "O2Comp")) +
-  labs(title = "LRCbeta", subtitle = Operator, colour = "Legend") + 
+  labs(title = "LRCbeta", subtitle = paste(Operator, "MtA BIOC2001 2022"), colour = "Legend") + 
   scale_colour_manual(values = LRCbeta_param_colours) +
   scale_x_continuous(expand = c(0,0)) +
   theme_bw()
@@ -363,10 +365,16 @@ O2Models %>%
   geom_line(aes(y = -dR, colour = "dR"), linetype = "dashed") +
   geom_line(aes(x = Ek, y = umolO2_mmolChl1_s1, colour = "Ek")) +
   geom_line(aes(x = O2Comp, y = umolO2_mmolChl1_s1, colour = "O2Comp")) +
-  labs(title = "LRCdR", subtitle = Operator, colour = "Legend") + 
+  labs(title = "LRCdR", subtitle = paste(Operator, "MtA BIOC2001 2022"), colour = "Legend") + 
   scale_colour_manual(values = LRCdR_param_colours) +
   scale_x_continuous(expand = c(0,0)) +
   theme_bw()
+
+ggsave(
+  "LRCdR_Param.png",
+  plot = last_plot(),
+  path = file.path("..", Plots)
+)
 
 ```
 
