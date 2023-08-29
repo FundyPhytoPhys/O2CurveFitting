@@ -385,5 +385,37 @@ ggsave(
 )
 
 ```
+PSIIopen * Sigma_m2 * photons_umol * umolphotons_m2_s1 = PSIIclose * 1/Tau_s
 
+PSIIopen * Sigma_m2 * photons_umol * umolphotons_m2_s1 = (PSII-PSIIopen) * 1/Tau_s
+
+PSIIopen/(PSII-PSIIopen) * Sigma_m2 * photons_umol * umolphotons_m2_s1 =  1/Tau_s
+
+PSIIopen/(PSII-PSIIopen) =  (1/Tau_s)/(Sigma_m2 * photons_umol * umolphotons_m2_s1)
+
+(PSII-PSIIopen)/PSIIopen =  (Sigma_m2 * photons_umol * umolphotons_m2_s1)/(1/Tau_s)
+
+PSII/PSIIopen - 1 =  (Sigma_m2 * photons_umol * umolphotons_m2_s1)/(1/Tau_s)
+
+PSII/PSIIopen =  (Sigma_m2 * photons_umol * umolphotons_m2_s1)/(1/Tau_s) + 1
+
+PSIIopen/PSII =  1/(((Sigma_m2 * photons_umol * umolphotons_m2_s1)/(1/Tau_s)) + 1)
+
+PSIIopen/PSII =  1/((Sigma_m2 * photons_umol * umolphotons_m2_s1 * Tau_s) + 1)
+
+# Simulate underlying electron transport
+```{r}
+photons_umol <- 6.022E17
+
+O2Data <- O2Data |>
+  mutate(PSII = 1,
+         Chl_PSII = 500,
+         Sigma_m2 = 300e-20,
+         Tau_s = 1e-3,
+         PSIIopen = 1/((Sigma_m2 * photons_umol * umolphotons_m2_s1 * Tau_s) + 1) 
+         ) |>
+  mutate(PSIIetr_es = photons_umol * umolphotons_m2_s1 * Sigma_m2 * PSIIopen,
+         PSIIO2etr_es = (umolO2_mmolChl1_s1 + LRCdR_Param2$R[1]) * 1/1000 * 4 * 1/Chl_PSII)
+
+```
 
