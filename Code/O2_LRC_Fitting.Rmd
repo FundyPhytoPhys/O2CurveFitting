@@ -417,5 +417,16 @@ O2Data <- O2Data |>
   mutate(PSIIetr_es = photons_umol * umolphotons_m2_s1 * Sigma_m2 * PSIIopen,
          PSIIO2etr_es = (umolO2_mmolChl1_s1 + LRCdR_Param2$R[1]) * 1/1000 * 4 * 1/Chl_PSII)
 
+O2ModelsETR <- O2Models |>
+  select(starts_with("LRCdr_"))
+
+
+  O2Models |>
+  unnest(c(LRCdR_Param, LRCdR_Predict))
+
+|>
+  mutate(Rpredict = )
+
+
 ```
 
