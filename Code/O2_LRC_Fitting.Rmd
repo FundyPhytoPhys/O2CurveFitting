@@ -407,7 +407,24 @@ PSIIopen/PSII =  1/((Sigma_m2 * photons_umol * umolphotons_m2_s1 * Tau_s) + 1)
 ```{r}
 photons_umol <- 6.022E17
 
-O2Data <- O2Data |>
+# O2Data <- O2Data |>
+#   mutate(PSII = 1,
+#          Chl_PSII = 500,
+#          Sigma_m2 = 300e-20,
+#          Tau_s = 1e-3,
+#          PSIIopen = 1/((Sigma_m2 * photons_umol * umolphotons_m2_s1 * Tau_s) + 1) 
+#          ) |>
+#   mutate(PSIIetr_es = photons_umol * umolphotons_m2_s1 * Sigma_m2 * PSIIopen,
+#          PSIIO2etr_es = (umolO2_mmolChl1_s1 + LRCdR_Param2$R[1]) * 1/1000 * 4 * 1/Chl_PSII)
+
+O2ModelsETR <- O2Models |>
+  select(starts_with("LRCdr_"))  |>
+  unnest(c(LRCdR_Param)) |>
+  select(-c(statistic)) |>
+  pivot_wider(names_from = term, values_from = c(estimate, std.error, `p.value`)) |>
+  unnest(c(LRCdR_Predict)) |>
+  mutate(Resp = r_fun(R = estimate_R, I = `umolphotons_m2_s1`, d = `estimate_d`)) |>
+  mutate(O2Gross_umolO2mmolChls1 = `.fitted` + Resp) |>
   mutate(PSII = 1,
          Chl_PSII = 500,
          Sigma_m2 = 300e-20,
@@ -415,18 +432,25 @@ O2Data <- O2Data |>
          PSIIopen = 1/((Sigma_m2 * photons_umol * umolphotons_m2_s1 * Tau_s) + 1) 
          ) |>
   mutate(PSIIetr_es = photons_umol * umolphotons_m2_s1 * Sigma_m2 * PSIIopen,
-         PSIIO2etr_es = (umolO2_mmolChl1_s1 + LRCdR_Param2$R[1]) * 1/1000 * 4 * 1/Chl_PSII)
-
-O2ModelsETR <- O2Models |>
-  select(starts_with("LRCdr_"))
+         PSIIO2etr_es = (O2Gross_umolO2mmolChls1 + LRCdR_Param2$R[1]) * 1/1000 * 4 * 1/Chl_PSII)
 
 
-  O2Models |>
-  unnest(c(LRCdR_Param, LRCdR_Predict))
-
-|>
-  mutate(Rpredict = )
-
-
+O2ModelsETR |>
+  ggplot(aes(x = umolphotons_m2_s1)) +
+  geom_point(aes(y = umolO2_mmolChl1_s1, colour =  "umolO2_mmolChl1_s1")) +
+  geom_line(aes(y = `.fitted`, colour = "fitted")) +
+  geom_line(aes(y = O2Gross_umolO2mmolChls1, colour =  "umolO2_mmolChl1_s1", linetype = "dashed")) +
+  geom_hline(yintercept = 0, linetype = "dashed") + 
+  # geom_line(aes(y = PMax_R, colour = "Pmax")) +
+  # geom_line(aes(y = alpha, colour = "alpha")) +
+  geom_line(aes(y = -Resp, colour = "dR"), linetype = "dashed") +
+  geom_line(aes(y = PSIIetr_es, colour = "dR"), linetype = "dashed") +
+  #geom_line(aes(x = Ek, y = umolO2_mmolChl1_s1, colour = "Ek")) +
+  #geom_line(aes(x = O2Comp, y = umolO2_mmolChl1_s1, colour = "O2Comp")) +
+  #labs(title = "LRCdR", subtitle = paste(Operator, "MtA BIOC2001 2022"), colour = "Legend") + 
+  scale_colour_manual(values = LRCdR_param_colours) +
+  scale_x_continuous(expand = c(0,0)) +
+  theme_bw()
+  
 ```
 
