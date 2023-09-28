@@ -97,8 +97,11 @@ lrc <- function(I, a, Pmax, R){((a * I * Pmax)/((a*I) + Pmax)) - R
 lrc_beta <- function(I, a, b, g, R){(a * (((1 - (b*I))/(1 + (g*I)))*I)) - R
 }
 
-# function with light-dependent acceleration of Respiration
-lrc_dr <- function(I, a, Pmax, R, d){((a * I * Pmax)/((a*I) + Pmax)) - (R + (R * I * d))
+#function with light-dependent acceleration of Respiration
+# lrc_dr <- function(I, a, Pmax, R, d){((a * I * Pmax)/((a*I) + Pmax)) - (R * exp(I * d))
+# }
+
+lrc_dr <- function(I, a, Pmax, R, d){((a * I * Pmax)/((a*I) + Pmax)) -  R -(I * d)
 }
 
 ```
@@ -159,15 +162,16 @@ O2Models <- O2FRRfMetaData %>%
                               start = list(a = 5e-4,
                                            Pmax = max(.$O2_umolLs, na.rm = TRUE),
                                            R = min(.$O2_umolLs, na.rm = TRUE),
-                                           d = 5e-5),
-                              upper = c(a = 0.1,
-                                           Pmax = 2 * max(.$O2_umolLs, na.rm = TRUE),
-                                           R = min(.$O2_umolLs, na.rm = TRUE),
-                                           d = 1),
-                              lower = c(a = 0,
-                                           Pmax = 0.5 * max(.$O2_umolLs, na.rm = TRUE),
-                                           R = 2 * min(.$O2_umolLs, na.rm = TRUE),
-                                           d = 0)
+                                           d = 1e-6)
+                              # ,
+                              # upper = c(a = 0.1,
+                              #              Pmax = 2 * max(.$O2_umolLs, na.rm = TRUE),
+                              #              R = min(.$O2_umolLs, na.rm = TRUE),
+                              #              d = 1),
+                              # lower = c(a = 0,
+                              #              Pmax = 0.5 * max(.$O2_umolLs, na.rm = TRUE),
+                              #              R = 0,
+                              #              d = 0)
                          )
                          )
          ) %>%
