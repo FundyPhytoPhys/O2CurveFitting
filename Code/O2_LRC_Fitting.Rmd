@@ -39,6 +39,7 @@ Plots <- file.path("..", "Plots")
 library(tidyverse) #data wrangling & plotting
 library(minpack.lm) #non linear model fitting
 library(broom) #formatting model outputs
+library(ggtext)
 ```
 
 # Import data file into R and inspect
@@ -433,9 +434,11 @@ O2Models %>%
   geom_line(aes(x = ActPARCorrinter, y = -R, colour = "Respiration"), linetype = "dashed") +
   geom_vline(aes(xintercept = Ek, colour = "EK Light Saturation Threshold"), linetype = "dashed") +
   geom_vline(aes(xintercept = LightComp,  colour = "Light Compensation"), linetype = "dashed") +
-  labs(title = "Light Response Curve", subtitle = paste(Operator), colour = "Legend", x = "Photosynthetically Active Radiation, µmolphotons_m-2_s-1", y = "µmol O2_L-1_s-1") + 
+  labs(title = "Light Response Curve", subtitle = paste(Operator), colour = "Legend", x = expression(paste("Photosynthetically Active Radiation ",  µmol," photons ", m^-2, s^-1)), y = expression(paste(µmol, " ", O[2], " ", L^-1, s^-1))) + 
   scale_colour_manual(values = LRC_param_colours) +
   scale_x_continuous(expand = c(0,0)) +
+  # theme(axis.title.x = element_markdown(),
+  #       axis.title.y = element_markdown()) +
   theme_bw()
 
 ggsave(
@@ -443,6 +446,15 @@ ggsave(
   plot = last_plot(),
   path = Plots
 )
+# 
+# library(ggtext)
+# library(ggplot2)
+# ggplot(mtcars, aes(hp, mpg)) +
+#   labs(x = "x axis (Å^(2))", y = "y axis") +
+#   ## use markdown theme for simple superscripts
+#   theme(axis.title.x = element_markdown())
+
+ggplot(mtcars, aes(hp, mpg)) + geom_point() + labs(x = expression(paste("x axis ", ring(A)^2)), y = "y axis")
 
 ```
 
