@@ -49,6 +49,8 @@ library(broom) #formatting model outputs
 O2FRRfMetaData <- readRDS(DataInPath)
 O2FRRfMetaData
 
+GrowthPAR <- as.numeric(O2FRRfMetaData$Par_ue[1])
+
 ```
 # Rename variables for R compatability
 ```{r variable rename}
@@ -101,7 +103,7 @@ lrc_beta <- function(I, a, b, g, R){(a * (((1 - (b*I))/(1 + (g*I)))*I)) - R
 # lrc_dr <- function(I, a, Pmax, R, d){((a * I * Pmax)/((a*I) + Pmax)) - (R * exp(I * d))
 # }
 
-lrc_dr <- function(I, a, Pmax, R, d){((a * I * Pmax)/((a*I) + Pmax)) -  R -(I * d)
+lrc_dr <- function(I, a, Pmax, R, d){((a * I * Pmax)/((a*I) + Pmax)) -  R - (I * d)
 }
 
 ```
@@ -162,12 +164,11 @@ O2Models <- O2FRRfMetaData %>%
                               start = list(a = 5e-4,
                                            Pmax = max(.$O2_umolLs, na.rm = TRUE),
                                            R = min(.$O2_umolLs, na.rm = TRUE),
-                                           d = 1e-6)
-                              # ,
-                              # upper = c(a = 0.1,
-                              #              Pmax = 2 * max(.$O2_umolLs, na.rm = TRUE),
-                              #              R = min(.$O2_umolLs, na.rm = TRUE),
-                              #              d = 1),
+                                           d = 1e-6),
+                              upper = c(a = 0.1,
+                                           Pmax = 2 * max(.$O2_umolLs, na.rm = TRUE),
+                                           R = -2 * min(.$O2_umolLs, na.rm = TRUE),
+                                           d = 0.0001)
                               # lower = c(a = 0,
                               #              Pmax = 0.5 * max(.$O2_umolLs, na.rm = TRUE),
                               #              R = 0,
@@ -240,12 +241,12 @@ LRC_Param <- O2Models %>%
   select(c(term, estimate, std.error)) %>%
   mutate(Model = "lrc", .before = "term")
 
-LRC_O2compEst <- lrc(I = seq(0,100, by = 1), a = LRC_Param$estimate[LRC_Param$term == "a"], Pmax = LRC_Param$estimate[LRC_Param$term == "Pmax"], R = LRC_Param$estimate[LRC_Param$term == "R"])
+LRC_LightcompEst <- lrc(I = seq(0,100, by = 1), a = LRC_Param$estimate[LRC_Param$term == "a"], Pmax = LRC_Param$estimate[LRC_Param$term == "Pmax"], R = LRC_Param$estimate[LRC_Param$term == "R"])
 
-O2compEst <- which(abs(LRC_O2compEst - 0) == min(abs(LRC_O2compEst - 0)))
+LightcompEst <- which(abs(LRC_LightcompEst - 0) == min(abs(LRC_LightcompEst - 0)))
 
 LRC_Param <- LRC_Param %>%
-  mutate(O2comp = O2compEst)
+  mutate(Lightcomp = LightcompEst)
 
 #poor coding, hack fix
 LRC_Param2 <- tibble(Model = "lrc",
@@ -254,9 +255,11 @@ LRC_Param2 <- tibble(Model = "lrc",
                      Pmax = c(as.numeric(LRC_Param$estimate[2]), as.numeric(LRC_Param$std.error[2])),
                      R = c(as.numeric(LRC_Param$estimate[3]), as.numeric(LRC_Param$std.error[3]))) %>%
   mutate(Pmax_R = Pmax - R,
-         O2Comp = c(O2compEst, NA))
+         EK = Pmax/a,
+         LightComp = c(LightcompEst, NA))
 
 LRC_Param2
+
 
 ```
 
@@ -305,12 +308,12 @@ LRCdR_Param <- O2Models %>%
   select(c(term, estimate, std.error)) %>%
   mutate(Model = "lrc_dR", .before = "term")
 
-LRCdR_O2compEst <- lrc_dr(I = seq(0,100, by = 1), a = LRCdR_Param$estimate[LRCdR_Param$term == "a"], Pmax = LRCdR_Param$estimate[LRCdR_Param$term == "Pmax"], d = LRCdR_Param$estimate[LRCdR_Param$term == "d"], R = LRCdR_Param$estimate[LRCdR_Param$term == "R"])
+LRCdR_LightcompEst <- lrc_dr(I = seq(0,100, by = 1), a = LRCdR_Param$estimate[LRCdR_Param$term == "a"], Pmax = LRCdR_Param$estimate[LRCdR_Param$term == "Pmax"], d = LRCdR_Param$estimate[LRCdR_Param$term == "d"], R = LRCdR_Param$estimate[LRCdR_Param$term == "R"])
 
-O2compEst_dR <- which(abs(LRCdR_O2compEst - 0) == min(abs(LRCdR_O2compEst - 0)))
+LightcompEst_dR <- which(abs(LRCdR_LightcompEst - 0) == min(abs(LRCdR_LightcompEst - 0)))
 
 LRCdR_Param <- LRCdR_Param %>%
-  mutate(O2comp = O2compEst_dR)
+  mutate(Lightcomp = LightcompEst_dR)
 
 LRCdR_Param2 <- tibble(Model = "lrc_dR",
                     Value = colnames(LRCdR_Param)[3:4],
@@ -320,7 +323,7 @@ LRCdR_Param2 <- tibble(Model = "lrc_dR",
                      d = c(as.numeric(LRCdR_Param$estimate[4]), as.numeric(LRCdR_Param$std.error[4]))) %>%
   mutate(Pmax_R = Pmax - R,
          EK = Pmax/a,
-        O2Comp = c(O2compEst_dR, NA))
+        LightComp = c(LightcompEst_dR, NA))
 
 LRCdR_Param2
 ```
@@ -383,6 +386,66 @@ LRCdR_Param2
 # )
 ```
 
+
+## LRC model with respiration.
+```{r plot LRC= parameters}
+
+# function with light-dependent acceleration of Respiration
+# lrc_dr <- function(I, a, Pmax, R, d){((a * I * Pmax)/((a*I) + Pmax)) - (R + (R * I^2 * d))
+# }
+LRC_Param2
+
+LRC_param_colours = line_colours = c("umolO2_Ls" = "darkgreen",
+                                 "alpha" = "green",
+                                 "fitted" = "black",
+                                 "residual" = "orange",
+                                 "EK Light Saturation Threshold" = "lightblue",
+                                 "Growth Light" = "blue",
+                                 "Pmax" = "darkgreen",
+                                 "Light Compensation" = "red",
+                                 "Respiration" = "darkred")
+  
+a_fun <- function(I, a = as.numeric(LRC_Param2$a[1]), R = as.numeric(LRCdR_Param2$R[1])){(I * a) - R
+}
+
+r_fun <- function(R = as.numeric(LRCdR_Param2$R[1]), I, d){R + (R * I^2 * d)
+}
+
+
+O2Models %>%
+  unnest(LRC_Predict) %>%
+  mutate(R = LRC_Param2$R[1],
+         PMax_R = LRC_Param2$Pmax_R[1],
+         Ek = LRC_Param2$EK[1],
+         LightComp = LRC_Param2$LightComp[1],
+         alpha = a_fun(I = ActPARCorrinter, a = as.numeric(LRC_Param2$a[1])),
+         R = LRC_Param2$R[1]) |>
+  ggplot(aes()) +
+  # xlim(0, max(as.numeric(O2Data$umolphotons_m2_s1), na.rm = TRUE)) +
+  ylim(ymin = -0.05, ymax = 0.15) +
+  geom_point(aes(x = ActPARCorrinter,y = O2_umolLs, colour =  "umolO2_Ls"), size = 2) +
+  geom_line(aes(x = ActPARCorrinter, y = `.fitted`, colour = "fitted"), linetype = "dashed") +
+  #geom_line(aes(x = ActPARCorrinter, y = `.resid`, colour = "residual")) +
+  geom_hline(aes(x = ActPARCorrinter, yintercept = 0), linetype = "dashed") + 
+  geom_vline(aes(xintercept = GrowthPAR, colour = "Growth Light")) +
+  geom_line(aes(x = ActPARCorrinter, y = PMax_R, colour = "Pmax"), linetype = "dashed") +
+  geom_line(aes(x = ActPARCorrinter, y = alpha, colour = "alpha"), linetype = "dashed") +
+  geom_line(aes(x = ActPARCorrinter, y = -R, colour = "Respiration"), linetype = "dashed") +
+  geom_vline(aes(xintercept = Ek, colour = "EK Light Saturation Threshold"), linetype = "dashed") +
+  geom_vline(aes(xintercept = LightComp,  colour = "Light Compensation"), linetype = "dashed") +
+  labs(title = "Light Response Curve", subtitle = paste(Operator), colour = "Legend", x = "Photosynthetically Active Radiation, µmolphotons_m-2_s-1", y = "µmol O2_L-1_s-1") + 
+  scale_colour_manual(values = LRC_param_colours) +
+  scale_x_continuous(expand = c(0,0)) +
+  theme_bw()
+
+ggsave(
+  "LRC_Param.png",
+  plot = last_plot(),
+  path = Plots
+)
+
+```
+
 ## LRCdR model with acceleration of respiration under increasing light.
 ```{r plot LRCdR parameters}
 
@@ -395,7 +458,7 @@ LRCdR_param_colours = line_colours = c("umolO2_mmolChl1_s1" = "green",
                                  "fitted" = "black",
                                  "Ek" = "blue",
                                  "Pmax" = "darkgreen",
-                                 "O2Comp" = "red",
+                                 "LightComp" = "red",
                                  "dR" = "darkred")
   
 a_fun <- function(I, a = as.numeric(LRCdR_Param2$a[1]), R = as.numeric(LRCdR_Param2$R[1])){(I * a) - R
@@ -410,12 +473,12 @@ O2Models %>%
   mutate(R = LRCdR_Param2$R[1],
          PMax_R = LRCdR_Param2$Pmax_R[1],
          Ek = LRCdR_Param2$EK[1],
-         O2Comp = LRCdR_Param2$O2Comp[1],
+         LightComp = LRCdR_Param2$LightComp[1],
          alpha = a_fun(I = ActPARCorrinter, a = as.numeric(LRCdR_Param2$a[1])),
          dR = r_fun(I = ActPARCorrinter, d = as.numeric(LRCdR_Param2$d[1]))) %>%
   ggplot(aes(x = ActPARCorrinter)) +
   # xlim(0, max(as.numeric(O2Data$umolphotons_m2_s1), na.rm = TRUE)) +
-  # ylim(min(as.numeric(O2Data$umolO2_mmolChl1_s1) * 2, na.rm = TRUE) - 20, max(as.numeric(O2Data$umolO2_mmolChl1_s1) *2, na.rm = TRUE)) +
+  ylim(ymin = -0.2, ymax = 0.25) +
   geom_point(aes(y = O2_umolLs, colour =  "umolO2_mmolChl1_s1")) +
   geom_line(aes(y = `.fitted`, colour = "fitted")) +
   geom_hline(yintercept = 0, linetype = "dashed") + 
@@ -423,7 +486,7 @@ O2Models %>%
   geom_line(aes(y = alpha, colour = "alpha")) +
   geom_line(aes(y = -dR, colour = "dR"), linetype = "dashed") +
   geom_line(aes(x = Ek, y = O2_umolLs, colour = "Ek")) +
-  geom_line(aes(x = O2Comp, y = O2_umolLs, colour = "O2Comp")) +
+  geom_line(aes(x = LightComp, y = O2_umolLs, colour = "LightComp")) +
   labs(title = "LRCdR", subtitle = paste(Operator), colour = "Legend") + 
   scale_colour_manual(values = LRCdR_param_colours) +
   scale_x_continuous(expand = c(0,0)) +
